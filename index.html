@@ -5,12 +5,126 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GPT Engineer</title>
+  <title>Alien Shooter 3D</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+    }
+  </style>
 </head>
 
 <body>
-  Your blank canvas
-  <!-- insert your changes here -->
+  <div id="game-container"></div>
+  <div id="score">Score: <span id="score-value">0</span></div>
+  <script type="module">
+    import * as THREE from 'three';
+
+    let scene, camera, renderer, player, aliens = [], bullets = [], score = 0;
+
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById('game-container').appendChild(renderer.domElement);
+
+      // Player (green cube)
+      const geometry = new THREE.BoxGeometry(1, 1, 1);
+      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      player = new THREE.Mesh(geometry, material);
+      player.position.z = 5;
+      scene.add(player);
+
+      camera.position.z = 10;
+
+      // Add some aliens
+      for (let i = 0; i < 10; i++) {
+        createAlien();
+      }
+
+      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('click', shoot);
+    }
+
+    function createAlien() {
+      const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+      const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const alien = new THREE.Mesh(geometry, material);
+      alien.position.set(
+        Math.random() * 10 - 5,
+        Math.random() * 10 - 5,
+        Math.random() * -10 - 5
+      );
+      scene.add(alien);
+      aliens.push(alien);
+    }
+
+    function onKeyDown(event) {
+      const speed = 0.1;
+      switch (event.key) {
+        case 'ArrowLeft':
+          player.position.x -= speed;
+          break;
+        case 'ArrowRight':
+          player.position.x += speed;
+          break;
+        case 'ArrowUp':
+          player.position.y += speed;
+          break;
+        case 'ArrowDown':
+          player.position.y -= speed;
+          break;
+      }
+    }
+
+    function shoot() {
+      const geometry = new THREE.SphereGeometry(0.1, 32, 32);
+      const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const bullet = new THREE.Mesh(geometry, material);
+      bullet.position.set(player.position.x, player.position.y, player.position.z);
+      scene.add(bullet);
+      bullets.push(bullet);
+    }
+
+    function updateBullets() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].position.z -= 0.2;
+        if (bullets[i].position.z < -10) {
+          scene.remove(bullets[i]);
+          bullets.splice(i, 1);
+        } else {
+          // Check for collisions with aliens
+          for (let j = aliens.length - 1; j >= 0; j--) {
+            if (bullets[i].position.distanceTo(aliens[j].position) < 0.5) {
+              scene.remove(aliens[j]);
+              aliens.splice(j, 1);
+              scene.remove(bullets[i]);
+              bullets.splice(i, 1);
+              score += 10;
+              document.getElementById('score-value').textContent = score;
+              createAlien(); // Replace the destroyed alien
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      updateBullets();
+      renderer.render(scene, camera);
+    }
+
+    init();
+    animate();
+  </script>
 </body>
 
 </html>
